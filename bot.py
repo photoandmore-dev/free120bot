@@ -5,15 +5,9 @@ import random
 import re
 import html
 from datetime import datetime, date
-
 import os
-bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
-@bot.message_handler(func=lambda message: True, content_types=['text'])
-def debug_all_messages(message):
-    print("CHAT ID:", message.chat.id)
-    print("THREAD ID:", message.message_thread_id)
-    print("TEXT:", message.text)
+bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
 # ----------- экранирование ----------
 def escape_html(text):
@@ -29,7 +23,6 @@ def load_people():
     df = df[df['published'] == 'true']
     df['id'] = df['id'].astype(str)
     return df
-
 
 # ----------- КОРОТКАЯ карточка (с фото) ----------
 def build_short_card(person, max_len=1024):
@@ -66,7 +59,6 @@ def build_short_card(person, max_len=1024):
     image_url = str(person.get('image', '')).strip()
     return image_url, text, markup
 
-
 # ----------- ПОЛНАЯ карточка (длинный текст) ----------
 def build_full_card(person):
     blocks = []
@@ -93,7 +85,6 @@ def build_full_card(person):
 
     return text, markup
 
-
 # ---------- /start ----------
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -101,12 +92,10 @@ def send_welcome(message):
     markup.add('🎨 Смотреть истории',
                '🔎 Найти человека',
                '🎂 Ближайшие дни рождения',
-               '❤️ Поддержать кампанию')
-
+               '❤️ Поддержать кампанию',
+               '✉️ Написать команде')
     welcome_text = ("Выберите действие ниже:")
-
     bot.send_message(message.chat.id, welcome_text, reply_markup=markup)
-
 
 # ---------- случайная история ----------
 @bot.message_handler(func=lambda message: message.text == '🎨 Смотреть истории')
@@ -127,13 +116,11 @@ def random_story(message):
         parse_mode='HTML'
     )
 
-
 # ---------- поиск ----------
 @bot.message_handler(func=lambda message: message.text == '🔎 Найти человека')
 def ask_name(message):
     bot.send_message(message.chat.id, 'Введите имя или фамилию для поиска:')
     bot.register_next_step_handler(message, search_name_step)
-
 
 def search_name_step(message):
     query = message.text.strip().lower()
@@ -153,7 +140,6 @@ def search_name_step(message):
         markup.add(types.InlineKeyboardButton(person['short_name'], callback_data=f"short_{person['id']}"))
 
     bot.send_message(message.chat.id, f'Найдено {len(results)}:', reply_markup=markup)
-
 
 # ---------- CALLBACK КНОПКИ ----------
 @bot.callback_query_handler(func=lambda call: True)
@@ -201,7 +187,7 @@ def callback_inline(call):
         bot.answer_callback_query(call.id)
         bot.send_message(call.message.chat.id, f'Ошибка: {e}')
 
-
+# ---------- дни рождения ----------
 @bot.message_handler(func=lambda message: message.text == '🎂 Ближайшие дни рождения')
 def birthdays(message):
     df = load_people()
@@ -218,14 +204,12 @@ def birthdays(message):
         if not raw or raw == 'nan':
             continue
 
-        # формат: 1989-02-23T00:00:00.000Z
         try:
             year, month, day = raw[:10].split('-')
             bday = date(today.year, int(month), int(day))
         except:
             continue
 
-        # если уже прошёл в этом году — переносим на следующий
         if bday < today:
             bday = date(today.year + 1, int(month), int(day))
 
@@ -238,19 +222,13 @@ def birthdays(message):
         bot.send_message(message.chat.id, "В ближайшие 7 дней дней рождений нет.")
         return
 
-    # сортировка по ближайшим
     upcoming.sort(key=lambda x: x[0])
-
     markup = types.InlineKeyboardMarkup()
-    text_lines = ["🎂 Ближайшие дни рождения:\n"]
 
     for days_left, person, human_date in upcoming:
         name = str(person.get('short_name', ''))
         person_id = str(person.get('id'))
 
-        text_lines.append(f"{name} — {human_date} (через {days_left} дн.)")
-
-        # КНОПКА → открывает КРАТКУЮ карточку С ФОТО
         markup.add(
             types.InlineKeyboardButton(
                 text=f"{name} ({days_left} дн.)",
@@ -264,13 +242,42 @@ def birthdays(message):
         reply_markup=markup
     )
 
-
+# ---------- поддержка ----------
 @bot.message_handler(func=lambda message: message.text == '❤️ Поддержать кампанию')
 def donation(message):
-    bot.send_message( message.chat.id, 'Кампания #free120 собирает средства для помощи политзаключённым по заявкам доверенных лиц:\n' '— передачи\n— лекарства\n— адвокаты\n— дорога родственникам\n\n' 'Поддержать: https://zaodno.org/r?id=rec4bAhJiKk2l0XZ8' )
+    bot.send_message(
+        message.chat.id,
+        'Кампания #free120 собирает средства для помощи политзаключённым по заявкам доверенных лиц:\n'
+        '— передачи\n— лекарства\n— адвокаты\n— дорога родственникам\n\n'
+        'Поддержать: https://zaodno.org/r?id=rec4bAhJiKk2l0XZ8'
+    )
 
+# ---------- ОБРАТНАЯ СВЯЗЬ ----------
+FEEDBACK_CHAT_ID = -1002381508012   # ваша группа
+FEEDBACK_THREAD_ID = 10090          # ветка в группе
 
+@bot.message_handler(func=lambda message: message.text == '✉️ Написать команде')
+def ask_feedback(message):
+    msg = bot.send_message(message.chat.id, "Напишите ваше сообщение для команды:")
+    bot.register_next_step_handler(msg, forward_feedback)
+
+def forward_feedback(message):
+    text = message.text.strip()
+    if not text:
+        bot.send_message(message.chat.id, "Вы не написали сообщение. Попробуйте снова.")
+        return
+
+    try:
+        bot.send_message(
+            chat_id=FEEDBACK_CHAT_ID,
+            text=f"Сообщение от @{message.from_user.username or message.from_user.first_name}:\n\n{text}",
+            message_thread_id=FEEDBACK_THREAD_ID
+        )
+        bot.send_message(message.chat.id, "Ваше сообщение отправлено команде. Спасибо!")
+    except Exception as e:
+        bot.send_message(message.chat.id, f"Ошибка при отправке сообщения: {e}")
+
+# ---------- запуск ----------
 if __name__ == '__main__':
     print('Bot is running...')
-
     bot.polling(none_stop=True)
