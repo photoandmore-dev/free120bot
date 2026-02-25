@@ -9,6 +9,12 @@ from datetime import datetime, date
 import os
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
+@bot.message_handler(func=lambda message: True, content_types=['text'])
+def debug_all_messages(message):
+    print("CHAT ID:", message.chat.id)
+    print("THREAD ID:", message.message_thread_id)
+    print("TEXT:", message.text)
+
 # ----------- экранирование ----------
 def escape_html(text):
     if text is None:
@@ -266,4 +272,5 @@ def donation(message):
 
 if __name__ == '__main__':
     print('Bot is running...')
+
     bot.polling(none_stop=True)
