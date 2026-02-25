@@ -6,7 +6,8 @@ import re
 import html
 from datetime import datetime, date
 
-bot = telebot.TeleBot('8082095260:AAEeElezIj2JfOXwEPdbFs8p-SuH_5EEYWw')
+import os
+bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
 # ----------- экранирование ----------
 def escape_html(text):
