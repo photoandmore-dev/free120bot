@@ -6,8 +6,7 @@ import re
 import html
 from datetime import datetime, date
 import os
-from dotenv import load_dotenv
-load_dotenv()
+
 
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
@@ -601,3 +600,4 @@ if __name__ == '__main__':
     print('Bot is running...')
 
     bot.polling(none_stop=True)
+
