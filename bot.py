@@ -55,7 +55,7 @@ def build_short_card(person, max_len=1024):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton('Читать подробнее', callback_data=f"full_{person['id']}"))
     markup.add(types.InlineKeyboardButton('Другой человек', callback_data='random'))
-    markup.add(types.InlineKeyboardButton('❤️ Поддержать кампанию', url='https://zaodno.org/r?id=rec4bAhJiKk2l0XZ8'))
+    markup.add(types.InlineKeyboardButton('❤️ Поддержать кампанию', url='https://www.free120pzk.com/donate'))
 
     image_url = str(person.get('image', '')).strip()
     return image_url, text, markup
